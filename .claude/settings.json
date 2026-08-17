@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(yarn build *)"
+      "Bash(yarn build *)",
+      "Bash(git pull *)"
     ]
   }
 }
