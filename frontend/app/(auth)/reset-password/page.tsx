@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, type FormEvent } from "react"
+import { Suspense, useEffect, useState, type FormEvent } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { confirmPasswordReset, verifyPasswordResetCode } from "firebase/auth"
@@ -22,6 +22,14 @@ import {
 type Status = "verifying" | "ready" | "invalid" | "success"
 
 export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <ResetPasswordForm />
+    </Suspense>
+  )
+}
+
+function ResetPasswordForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const oobCode = searchParams.get("oobCode")

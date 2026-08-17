@@ -1,14 +1,11 @@
-import type { Metadata } from "next"
-import {
-  Camera,
-  KeyRound,
-  ShieldCheck,
-  UserPlus,
-} from "lucide-react"
+"use client"
+
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { AlertCircle, KeyRound, LogOut, MailCheck } from "lucide-react"
 
 import { AppHeader } from "@/components/layout/app-header"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -20,83 +17,55 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { Switch } from "@/components/ui/switch"
+import { useAuth } from "@/contexts/auth-context"
+import { getAuthErrorMessage } from "@/lib/auth/error-messages"
 
-const NOTIFICATION_PREFERENCES = [
-  {
-    id: "dataset-validation",
-    label: "Dataset validation complete",
-    description:
-      "Get notified when an uploaded dataset finishes validation.",
-    defaultChecked: true,
-  },
-  {
-    id: "study-shared",
-    label: "New research study shared with you",
-    description: "Alerts when a collaborator shares a study with your team.",
-    defaultChecked: true,
-  },
-  {
-    id: "weekly-digest",
-    label: "Weekly research digest",
-    description: "A summary of activity across your research workspace.",
-    defaultChecked: false,
-  },
-  {
-    id: "security-alerts",
-    label: "Security alerts",
-    description: "Sign-in attempts and other important account activity.",
-    defaultChecked: true,
-  },
-]
-
-const TEAM_MEMBERS = [
-  {
-    name: "Dr. R. Nandakumar",
-    email: "r.nandakumar@hormonebench.ai",
-    initials: "RN",
-    role: "Admin" as const,
-  },
-  {
-    name: "S. Whitfield",
-    email: "s.whitfield@hormonebench.ai",
-    initials: "SW",
-    role: "Researcher" as const,
-  },
-  {
-    name: "Dr. M. Osei",
-    email: "m.osei@hormonebench.ai",
-    initials: "MO",
-    role: "Researcher" as const,
-  },
-  {
-    name: "J. Alvarez",
-    email: "j.alvarez@hormonebench.ai",
-    initials: "JA",
-    role: "Viewer" as const,
-  },
-]
-
-const ROLE_BADGE_VARIANT: Record<
-  (typeof TEAM_MEMBERS)[number]["role"],
-  "default" | "secondary" | "outline"
-> = {
-  Admin: "default",
-  Researcher: "secondary",
-  Viewer: "outline",
-}
-
-export const metadata: Metadata = {
-  title: "Settings",
+function getInitials(name: string | null | undefined, email: string | null | undefined) {
+  if (name) {
+    const parts = name.trim().split(/\s+/)
+    return parts
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("")
+  }
+  return email?.[0]?.toUpperCase() ?? "?"
 }
 
 export default function SettingsPage() {
+  const router = useRouter()
+  const { user, sendPasswordReset, signOut } = useAuth()
+
+  const [isSendingReset, setIsSendingReset] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
+  const [resetError, setResetError] = useState<string | null>(null)
+  const [isSigningOut, setIsSigningOut] = useState(false)
+
+  async function handlePasswordReset() {
+    if (!user?.email) return
+    setResetError(null)
+    setIsSendingReset(true)
+    try {
+      await sendPasswordReset(user.email)
+      setResetSent(true)
+    } catch (err) {
+      setResetError(getAuthErrorMessage(err))
+    } finally {
+      setIsSendingReset(false)
+    }
+  }
+
+  async function handleSignOut() {
+    setIsSigningOut(true)
+    await signOut()
+    router.push("/")
+    router.refresh()
+  }
+
   return (
     <div className="flex flex-1 flex-col">
       <AppHeader
         title="Settings"
-        description="Manage your account, notifications, and workspace preferences."
+        description="Manage your account."
       />
 
       <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -105,77 +74,36 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle>Profile</CardTitle>
             <CardDescription>
-              Update your personal information and how it appears to your
-              team.
+              Your account information from your Firebase profile.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
             <div className="flex items-center gap-4">
               <Avatar size="lg">
-                <AvatarFallback>AH</AvatarFallback>
+                <AvatarFallback>
+                  {getInitials(user?.displayName, user?.email)}
+                </AvatarFallback>
               </Avatar>
-              <Button variant="outline" size="sm">
-                <Camera />
-                Change photo
-              </Button>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-foreground">
+                  {user?.displayName || "—"}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {user?.email}
+                </span>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="full-name">Full name</Label>
-                <Input id="full-name" defaultValue="Ali Hangar" />
+                <Input id="full-name" value={user?.displayName ?? ""} disabled />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  defaultValue="ali@hangardirect.com"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5 sm:col-span-2">
-                <Label htmlFor="role-title">Role / title</Label>
-                <Input
-                  id="role-title"
-                  defaultValue="Principal Investigator, Endocrinology"
-                />
+                <Input id="email" type="email" value={user?.email ?? ""} disabled />
               </div>
             </div>
-          </CardContent>
-          <CardFooter className="justify-end">
-            <Button>Save changes</Button>
-          </CardFooter>
-        </Card>
-
-        {/* Notifications */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Notifications</CardTitle>
-            <CardDescription>
-              Choose which updates you&apos;d like to receive.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col">
-            {NOTIFICATION_PREFERENCES.map((pref, index) => (
-              <div key={pref.id}>
-                {index > 0 ? <Separator className="my-4" /> : null}
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex flex-col gap-0.5">
-                    <Label htmlFor={pref.id} className="text-sm">
-                      {pref.label}
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      {pref.description}
-                    </p>
-                  </div>
-                  <Switch
-                    id={pref.id}
-                    defaultChecked={pref.defaultChecked}
-                    className="mt-0.5 shrink-0"
-                  />
-                </div>
-              </div>
-            ))}
           </CardContent>
         </Card>
 
@@ -184,89 +112,50 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle>Security</CardTitle>
             <CardDescription>
-              Manage your password and account protection.
+              Manage your password and session.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-6">
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <KeyRound className="size-4 text-muted-foreground" />
-                Change password
+          <CardContent className="flex flex-col gap-4">
+            {resetError ? (
+              <div className="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                <span>{resetError}</span>
               </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-1.5 sm:col-span-2">
-                  <Label htmlFor="current-password">Current password</Label>
-                  <Input id="current-password" type="password" />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="new-password">New password</Label>
-                  <Input id="new-password" type="password" />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="confirm-password">Confirm password</Label>
-                  <Input id="confirm-password" type="password" />
-                </div>
+            ) : null}
+
+            {resetSent ? (
+              <div className="flex items-start gap-2 rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
+                <MailCheck className="mt-0.5 size-4 shrink-0" />
+                <span>
+                  If an account exists for {user?.email}, we&apos;ve sent a
+                  link to reset your password.
+                </span>
               </div>
-            </div>
-
-            <Separator />
-
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex flex-col gap-0.5">
+            ) : (
+              <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <ShieldCheck className="size-4 text-muted-foreground" />
-                  Two-factor authentication
+                  <KeyRound className="size-4 text-muted-foreground" />
+                  Change password
                 </div>
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <Badge variant="success">Enabled</Badge>
-                  <span>Your account is protected with an authenticator app.</span>
-                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePasswordReset}
+                  disabled={isSendingReset || !user?.email}
+                >
+                  {isSendingReset ? "Sending…" : "Send reset link"}
+                </Button>
               </div>
-              <Switch defaultChecked className="mt-0.5 shrink-0" />
-            </div>
+            )}
           </CardContent>
           <CardFooter className="justify-end">
-            <Button>Update password</Button>
-          </CardFooter>
-        </Card>
-
-        {/* Workspace / Team */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Workspace members</CardTitle>
-            <CardDescription>
-              People with access to this research workspace.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col">
-            {TEAM_MEMBERS.map((member, index) => (
-              <div key={member.email}>
-                {index > 0 ? <Separator className="my-4" /> : null}
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarFallback>{member.initials}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-foreground">
-                        {member.name}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        {member.email}
-                      </span>
-                    </div>
-                  </div>
-                  <Badge variant={ROLE_BADGE_VARIANT[member.role]}>
-                    {member.role}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-          <CardFooter className="justify-end">
-            <Button variant="outline">
-              <UserPlus />
-              Invite member
+            <Button
+              variant="destructive"
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+            >
+              <LogOut />
+              {isSigningOut ? "Signing out…" : "Sign out"}
             </Button>
           </CardFooter>
         </Card>
