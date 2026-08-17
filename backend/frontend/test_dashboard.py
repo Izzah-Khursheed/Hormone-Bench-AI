@@ -1,4 +1,4 @@
-"""Manual testing dashboard for every AI Developer 1 backend endpoint. Not the production
+"""Manual testing dashboard for AI Developer 1 & AI Developer 2 backend endpoints. Not the production
 frontend (that's a separate Next.js build, owned by the Full Stack Developer role) — this is
 just a fast way to click through and verify each endpoint without using curl/Swagger.
 
@@ -6,17 +6,17 @@ Run with:  streamlit run frontend/test_dashboard.py
 """
 
 import json
-
+import mimetypes
 import requests
 import streamlit as st
 
-st.set_page_config(page_title="AI Dev 1 - Test Dashboard", page_icon="🧪", layout="wide")
+st.set_page_config(page_title="HormoneBench AI - Test Dashboard", page_icon="🧬", layout="wide")
 
-st.title("🧪 AI Developer 1 — Test Dashboard")
-st.caption("Manual testing UI for every backend endpoint you've built. Not the production frontend.")
+st.title("🧪 HormoneBench AI — Unified Test Dashboard")
+st.caption("Manual testing UI for AI Developer 1 & AI Developer 2 backend endpoints.")
 
 with st.sidebar:
-    st.header("Backend")
+    st.header("Backend Configuration")
     backend_url = st.text_input("Backend URL", value="http://localhost:8000")
     API = f"{backend_url}/api/v1"
 
@@ -46,6 +46,7 @@ tabs = st.tabs(
         "💬 Chat", "📄 Upload", "🔍 Literature", "📝 Summarize", "📚 Citations",
         "🔎 Semantic Search", "📊 Reports", "📈 Dataset Analysis", "📉 Statistics",
         "🧾 Evidence", "🎓 Tutor", "💡 Education", "🕸️ Knowledge Graph",
+        "🧬 Data Engineering"  # Role 2 Integration
     ]
 )
 
@@ -350,3 +351,83 @@ with tabs[12]:
                 show_response(r)
             except Exception as exc:
                 st.error(str(exc))
+
+# --- Data Engineering (Role 2) ---
+with tabs[13]:
+    st.subheader("🧬 Biomedical Data Engineering & Quality Engine (Role 2)")
+    st.caption("Upload multiple CSV or Excel datasets for schema matching, automatic merging, missing value detection, benchmark indexing, and AI cleaning recommendations.")
+
+    role2_files = st.file_uploader(
+        "Upload one or more CSV or Excel files", 
+        type=["csv", "xlsx", "xls"],  # Updated to support Excel files
+        accept_multiple_files=True, 
+        key="role2_csv_upload"
+    )
+
+    if st.button("Process & Validate Datasets", key="role2_process_btn"):
+        if not role2_files:
+            st.warning("Please upload at least one dataset file (CSV or Excel).")
+        else:
+            with st.spinner("Merging datasets, running schema checks, calculating metrics & generating suggestions..."):
+                try:
+                    files_payload = []
+                    for f in role2_files:
+                        content_type = f.type or mimetypes.guess_type(f.name)[0] or "application/octet-stream"
+                        files_payload.append(("files", (f.name, f.getvalue(), content_type)))
+                    
+                    r = requests.post(f"{API}/dataset/process-and-validate", files=files_payload, timeout=120)
+                    
+                    if r.status_code == 200:
+                        data = r.json()
+                        report = data.get("summary") or data.get("validation_report", {})
+                        benchmark = data.get("benchmark") or data.get("quality_benchmark", {})
+                        suggestions = data.get("recommendations") or data.get("cleaning_suggestions", "")
+
+                        st.success("Processing complete!")
+
+                        # Metrics Dashboard
+                        m1, m2, m3, m4 = st.columns(4)
+                        m1.metric("Overall Quality Score", f"{benchmark.get('overall_quality_index', 0)}%")
+                        m2.metric("Completeness", f"{benchmark.get('completeness_score', 0)}%")
+                        m3.metric("Uniqueness", f"{benchmark.get('uniqueness_score', 0)}%")
+                        m4.metric("Validity", f"{benchmark.get('validity_score', 0)}%")
+
+                        st.divider()
+
+                        col_a, col_b = st.columns(2)
+
+                        with col_a:
+                            st.markdown("### 📊 Dataset Summary")
+                            st.json({
+                                "Total Rows": report.get("total_rows"),
+                                "Total Columns": report.get("total_columns"),
+                                "Missing Cells": report.get("missing_cells"),
+                                "Missing Percentage": f"{report.get('missing_percentage')}%",
+                                "Duplicate Rows": report.get("duplicate_rows")
+                            })
+
+                            st.markdown("### 🔍 Missing Values per Column")
+                            st.json(report.get("missing_per_column", {}))
+
+                        with col_b:
+                            st.markdown("### ⚠️ Biomarker Outlier Detection")
+                            anomalies = report.get("biomarker_anomalies", {})
+                            if anomalies:
+                                st.error(f"Detected out-of-range values in {len(anomalies)} biomarker column(s):")
+                                st.json(anomalies)
+                            else:
+                                st.success("All biomarker values are within normal physiological bounds.")
+
+                        st.divider()
+
+                        st.markdown("### 🤖 AI Data Cleaning Recommendations")
+                        st.markdown(suggestions)
+
+                        with st.expander("View Raw API Response"):
+                            st.json(data)
+                    else:
+                        st.error(f"HTTP {r.status_code}")
+                        st.code(r.text)
+
+                except Exception as exc:
+                    st.error(f"Request failed: {str(exc)}")

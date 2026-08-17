@@ -8,7 +8,8 @@ langgraph-checkpoint-sqlite
 
 chromadb
 langchain-chroma
-
+rapidfuzz>=3.0.0
+scikit-learn>=1.2.0
 pypdf
 python-docx
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List
-
+import os
 import yaml
 from jinja2 import Template
 
@@ -58,3 +58,24 @@ def load_medical_disclaimer() -> str:
 def apply_medical_guardrails(system_prompt: str) -> str:
     """Append the canonical medical disclaimer to any patient/public-facing system prompt."""
     return f"{system_prompt}\n\n---\n{load_medical_disclaimer()}"
+
+
+def render_prompt(template_path_or_str: str, context: dict = None) -> str:
+    """
+    Loads prompt template (from YAML file or string) and renders it with context.
+    """
+    if context is None:
+        context = {}
+
+    # Check if the input is a path to a YAML file
+    if template_path_or_str.endswith(('.yaml', '.yml')) and os.path.exists(template_path_or_str):
+        with open(template_path_or_str, 'r', encoding='utf-8') as f:
+            data = yaml.safe_load(f)
+            # Assuming YAML contains a 'template' key or string
+            raw_prompt = data.get('template', '') if isinstance(data, dict) else str(data)
+    else:
+        # Treat as raw string template
+        raw_prompt = template_path_or_str
+
+    template = Template(raw_prompt)
+    return template.render(**context)
