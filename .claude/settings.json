@@ -7,7 +7,11 @@
       "Bash(vercel --version)",
       "Bash(vercel whoami *)",
       "Bash(grep -rn \"serverExternalPackages\\\\|serverComponentsExternalPackages\\\\|transpilePackages\" . --include=\"*.ts\" --include=\"*.js\" --include=\"*.mjs\" -not -path \"./node_modules/*\")",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(npm view *)",
+      "Bash(rm -rf .next)",
+      "Bash(lsof -ti:3000)",
+      "Bash(xargs -I{} ps -p {} -o pid,command)"
     ]
   }
 }
