@@ -22,6 +22,7 @@ const SITE_DESCRIPTION =
   "AI-powered hormone research platform for data validation, analysis, and evidence-based education.";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://hormone-bench-ai-xi.vercel.app"),
   title: {
     default: SITE_NAME,
     template: `%s | ${SITE_NAME}`,
@@ -41,7 +42,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"

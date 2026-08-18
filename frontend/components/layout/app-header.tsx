@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ChevronDown, LogOut, Settings, User, RefreshCw, Zap } from "lucide-react"
+import { ChevronDown, LogOut, Settings, User, RefreshCw } from "lucide-react"
 
 import { useAuth } from "@/contexts/auth-context"
 import { SidebarTrigger } from "@/components/ui/sidebar"
@@ -56,8 +56,24 @@ export function AppHeader({
   }, [])
 
   React.useEffect(() => {
-    checkHealth()
-  }, [checkHealth])
+    let isMounted = true
+    setIsChecking(true)
+    healthApi
+      .check()
+      .then((res) => {
+        if (isMounted) setHealth(res)
+      })
+      .catch(() => {
+        if (isMounted) setHealth(null)
+      })
+      .finally(() => {
+        if (isMounted) setIsChecking(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   async function handleSignOut() {
     await signOut()

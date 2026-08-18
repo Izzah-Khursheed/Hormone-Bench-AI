@@ -42,6 +42,7 @@ function ResetPasswordForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
+    let isMounted = true
     if (!oobCode) {
       setStatus("invalid")
       return
@@ -49,13 +50,21 @@ function ResetPasswordForm() {
 
     verifyPasswordResetCode(firebaseAuth, oobCode)
       .then((verifiedEmail) => {
-        setEmail(verifiedEmail)
-        setStatus("ready")
+        if (isMounted) {
+          setEmail(verifiedEmail)
+          setStatus("ready")
+        }
       })
       .catch((err) => {
-        setError(getAuthErrorMessage(err))
-        setStatus("invalid")
+        if (isMounted) {
+          setError(getAuthErrorMessage(err))
+          setStatus("invalid")
+        }
       })
+
+    return () => {
+      isMounted = false
+    }
   }, [oobCode])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {

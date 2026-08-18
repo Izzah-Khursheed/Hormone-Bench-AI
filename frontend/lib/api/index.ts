@@ -122,7 +122,7 @@ export const statisticsApi = {
   processAndValidate: (files: File[]) => {
     const formData = new FormData();
     files.forEach((f) => formData.append("files", f));
-    return apiFetch<any>("/api/v1/dataset/process-and-validate", {
+    return apiFetch<unknown>("/api/v1/dataset/process-and-validate", {
       method: "POST",
       body: formData,
     });

@@ -3,9 +3,9 @@ export const RAW_API_BASE_URL =
 
 export class ApiError extends Error {
   status: number;
-  data: any;
+  data: unknown;
 
-  constructor(message: string, status: number, data?: any) {
+  constructor(message: string, status: number, data?: unknown) {
     super(message);
     this.name = "ApiError";
     this.status = status;
@@ -62,7 +62,7 @@ export async function apiFetch<T>(
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      let errorData: any;
+      let errorData: unknown;
       try {
         errorData = await response.json();
       } catch {
@@ -71,14 +71,20 @@ export async function apiFetch<T>(
 
       let message = `API request failed with status ${response.status}`;
       if (typeof errorData === "object" && errorData !== null) {
-        if (errorData.detail) {
-          if (Array.isArray(errorData.detail)) {
-            message = errorData.detail.map((err: any) => err.msg || JSON.stringify(err)).join("; ");
-          } else if (typeof errorData.detail === "string") {
-            message = errorData.detail;
+        const errObj = errorData as Record<string, unknown>;
+        if (errObj.detail) {
+          if (Array.isArray(errObj.detail)) {
+            message = errObj.detail.map((err: unknown) => {
+              if (typeof err === "object" && err !== null && "msg" in err) {
+                return (err as { msg: string }).msg;
+              }
+              return JSON.stringify(err);
+            }).join("; ");
+          } else if (typeof errObj.detail === "string") {
+            message = errObj.detail;
           }
-        } else if (errorData.message) {
-          message = errorData.message;
+        } else if (typeof errObj.message === "string") {
+          message = errObj.message;
         }
       }
 
@@ -91,14 +97,15 @@ export async function apiFetch<T>(
     } catch {
       return textData as unknown as T;
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     clearTimeout(timeoutId);
-    if (err.name === "AbortError") {
+    if (err instanceof Error && err.name === "AbortError") {
       throw new ApiError("Request timed out. Render backend might be starting up.", 504);
     }
     if (err instanceof ApiError) {
       throw err;
     }
-    throw new ApiError(err.message || "Network request failed", 500);
+    const msg = err instanceof Error ? err.message : "Network request failed";
+    throw new ApiError(msg, 500);
   }
 }

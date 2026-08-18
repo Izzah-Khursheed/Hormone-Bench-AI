@@ -83,10 +83,10 @@ export interface DatasetSummary {
   dataset_name?: string | null;
   row_count?: number | null;
   column_count?: number | null;
-  columns?: Record<string, any>[];
-  missing_value_summary?: Record<string, any>;
+  columns?: Record<string, unknown>[];
+  missing_value_summary?: Record<string, unknown>;
   detected_features?: string[];
-  basic_stats?: Record<string, any>;
+  basic_stats?: Record<string, unknown>;
   notes?: string | null;
 }
 
@@ -183,7 +183,7 @@ export interface KGExtractResponse {
 
 export interface KGEntityResponse {
   entity: string;
-  relations: Record<string, any>[];
+  relations: Record<string, unknown>[];
 }
 
 export interface KGAskRequest {
@@ -210,8 +210,8 @@ export interface ChatRequest {
 export interface ChatResponse {
   answer: string;
   route_used: string;
-  docs_retrieved?: Record<string, any>[] | null;
-  citations?: Record<string, any>[] | null;
+  docs_retrieved?: Record<string, unknown>[] | null;
+  citations?: Record<string, unknown>[] | null;
 }
 
 export interface URLResearchRequest {

@@ -4,7 +4,6 @@ import * as React from "react";
 import {
   ExternalLink,
   Search,
-  BookOpen,
   Sparkles,
   Loader2,
   Globe,
