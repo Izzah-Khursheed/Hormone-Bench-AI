@@ -1,22 +1,36 @@
 import "server-only"
 import { getApps, initializeApp, cert, type App } from "firebase-admin/app"
-import { getAuth } from "firebase-admin/auth"
+import { getAuth, type Auth } from "firebase-admin/auth"
 
 function formatPrivateKey(key: string | undefined): string | undefined {
   if (!key) return undefined
   let sanitized = key.trim()
-  // Remove surrounding quotes if user added quotes in Vercel UI
+
+  // Remove surrounding double or single quotes if added in Vercel UI
   if (
     (sanitized.startsWith('"') && sanitized.endsWith('"')) ||
     (sanitized.startsWith("'") && sanitized.endsWith("'"))
   ) {
     sanitized = sanitized.slice(1, -1)
   }
-  // Replace escaped \n strings with real line breaks
+
+  // Handle Base64 encoded private keys (if user base64 encoded it for Vercel)
+  if (!sanitized.includes("-----BEGIN PRIVATE KEY-----") && !sanitized.includes("\\n")) {
+    try {
+      const decoded = Buffer.from(sanitized, "base64").toString("utf8")
+      if (decoded.includes("-----BEGIN PRIVATE KEY-----")) {
+        sanitized = decoded
+      }
+    } catch {
+      // Continue with original sanitized string
+    }
+  }
+
+  // Replace literal \n string with actual newlines
   return sanitized.replace(/\\n/g, "\n")
 }
 
-function createAdminApp(): App {
+export function getAdminApp(): App {
   if (getApps().length) {
     return getApps()[0]!
   }
@@ -26,7 +40,9 @@ function createAdminApp(): App {
   const privateKey = formatPrivateKey(process.env.FIREBASE_PRIVATE_KEY)
 
   if (!projectId || !clientEmail || !privateKey) {
-    console.warn("Firebase Admin environment variables missing or incomplete.")
+    throw new Error(
+      `Firebase Admin environment variables missing: projectId=${!!projectId}, clientEmail=${!!clientEmail}, privateKey=${!!privateKey}`
+    )
   }
 
   return initializeApp({
@@ -38,5 +54,7 @@ function createAdminApp(): App {
   })
 }
 
-export const firebaseAdminApp = createAdminApp()
-export const firebaseAdminAuth = getAuth(firebaseAdminApp)
+export function getAdminAuth(): Auth {
+  const app = getAdminApp()
+  return getAuth(app)
+}

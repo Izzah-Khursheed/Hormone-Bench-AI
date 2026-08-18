@@ -1,13 +1,14 @@
 import "server-only"
 import { cookies } from "next/headers"
 
-import { firebaseAdminAuth } from "@/lib/firebase/admin"
+import { getAdminAuth } from "@/lib/firebase/admin"
 
 const SESSION_COOKIE_NAME = "__session"
 const SESSION_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 14
 
 export async function createSessionCookie(idToken: string) {
-  const sessionCookie = await firebaseAdminAuth.createSessionCookie(idToken, {
+  const auth = getAdminAuth()
+  const sessionCookie = await auth.createSessionCookie(idToken, {
     expiresIn: SESSION_MAX_AGE_MS,
   })
 
@@ -35,7 +36,8 @@ export async function verifySession() {
   }
 
   try {
-    const decodedClaims = await firebaseAdminAuth.verifySessionCookie(
+    const auth = getAdminAuth()
+    const decodedClaims = await auth.verifySessionCookie(
       sessionCookie,
       true
     )
