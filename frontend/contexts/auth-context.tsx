@@ -42,15 +42,23 @@ async function syncSessionCookie(user: User | null) {
     return
   }
 
-  const idToken = await user.getIdToken()
-  const response = await fetch("/api/auth/session", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ idToken }),
-  })
+  try {
+    // Force refresh ID token to ensure a fresh, unexpired token for session cookie creation
+    const idToken = await user.getIdToken(true)
+    const response = await fetch("/api/auth/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken }),
+    })
 
-  if (!response.ok) {
-    throw new Error("Failed to establish a session. Try signing in again.")
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      console.error("Session sync cookie HTTP error:", response.status, errorData)
+      throw new Error(errorData.error || "Failed to establish a session cookie. Try signing in again.")
+    }
+  } catch (err: any) {
+    console.error("syncSessionCookie error:", err)
+    throw err
   }
 }
 
