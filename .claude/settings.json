@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(yarn build *)",
-      "Bash(git pull *)"
+      "Bash(git pull *)",
+      "Bash(node -e ' *)",
+      "Bash(vercel --version)",
+      "Bash(vercel whoami *)",
+      "Bash(grep -rn \"serverExternalPackages\\\\|serverComponentsExternalPackages\\\\|transpilePackages\" . --include=\"*.ts\" --include=\"*.js\" --include=\"*.mjs\" -not -path \"./node_modules/*\")",
+      "Bash(npm run *)"
     ]
   }
 }
