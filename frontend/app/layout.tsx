@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 
+// Configure primary fonts for modern design system
 const fontSans = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
