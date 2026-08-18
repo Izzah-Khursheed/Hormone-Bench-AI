@@ -12,6 +12,9 @@ import {
   AlertCircle,
   Database,
   Plus,
+  Copy,
+  Check,
+  FileText,
 } from "lucide-react";
 
 import { AppHeader } from "@/components/layout/app-header";
@@ -68,12 +71,14 @@ export default function ResourcesPage() {
   const [citationStyle, setCitationStyle] = React.useState<"apa" | "vancouver" | "bibtex">("apa");
   const [formattedCitations, setFormattedCitations] = React.useState<string[]>([]);
   const [isFormatting, setIsFormatting] = React.useState(false);
+  const [copiedCitations, setCopiedCitations] = React.useState(false);
 
   // Report Generator State
   const [reportTopic, setReportTopic] = React.useState("");
   const [isGeneratingReport, setIsGeneratingReport] = React.useState(false);
   const [generatedReport, setGeneratedReport] = React.useState<ReportGenerateResponse | null>(null);
   const [reportError, setReportError] = React.useState<string | null>(null);
+  const [copiedReport, setCopiedReport] = React.useState(false);
 
   // URL Research Sheet State
   const [isUrlSheetOpen, setIsUrlSheetOpen] = React.useState(false);
@@ -91,7 +96,7 @@ export default function ResourcesPage() {
       setPapers(res.papers || []);
     } catch (err: any) {
       setPaperError(err.message || "Failed to fetch literature from backend API.");
-    } fontally: {
+    } finally {
       setIsLoadingPapers(false);
     }
   }, [selectedSource]);
@@ -115,7 +120,7 @@ export default function ResourcesPage() {
       });
       setIngestStatus((prev) => ({
         ...prev,
-        [paper.id]: `Ingested ${res.chunks_ingested} chunks (ID: ${res.paper_id})`,
+        [paper.id]: `Ingested ${res.chunks_ingested} chunks`,
       }));
     } catch (err: any) {
       setIngestStatus((prev) => ({
@@ -179,11 +184,22 @@ export default function ResourcesPage() {
     }
   }
 
+  const copyToClipboard = (text: string, type: "citations" | "report") => {
+    navigator.clipboard.writeText(text);
+    if (type === "citations") {
+      setCopiedCitations(true);
+      setTimeout(() => setCopiedCitations(false), 2000);
+    } else {
+      setCopiedReport(true);
+      setTimeout(() => setCopiedReport(false), 2000);
+    }
+  };
+
   return (
     <div className="flex flex-1 flex-col">
       <AppHeader
         title="Resource Library & Literature"
-        description="Live API search for PubMed & Semantic Scholar, citation formatting, and AI research reports."
+        description="Search PubMed & Semantic Scholar, format citations, and generate AI research reports."
       />
       <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
         
@@ -193,7 +209,7 @@ export default function ResourcesPage() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search PubMed & Semantic Scholar APIs..."
-              className="pl-9 pr-24"
+              className="pl-9 pr-24 text-xs sm:text-sm"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleLiveSearch()}
@@ -210,7 +226,7 @@ export default function ResourcesPage() {
 
           <div className="flex flex-wrap items-center gap-2">
             <Select value={selectedSource} onValueChange={(val: any) => setSelectedSource(val)}>
-              <SelectTrigger className="w-44">
+              <SelectTrigger className="w-44 text-xs">
                 <SelectValue placeholder="Source API" />
               </SelectTrigger>
               <SelectContent>
@@ -222,7 +238,7 @@ export default function ResourcesPage() {
 
             <Button
               variant="outline"
-              className="gap-2"
+              className="gap-2 text-xs"
               onClick={() => setIsUrlSheetOpen(true)}
             >
               <Globe className="h-4 w-4 text-primary" />
@@ -240,7 +256,7 @@ export default function ResourcesPage() {
 
         <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)}>
           <TabsList className="w-full justify-start overflow-x-auto">
-            <TabsTrigger value="library">Live API Corpus Index ({papers.length})</TabsTrigger>
+            <TabsTrigger value="library">Live API Corpus ({papers.length})</TabsTrigger>
             <TabsTrigger value="live-search">Search Stream</TabsTrigger>
             <TabsTrigger value="citations">Citation Formatter</TabsTrigger>
             <TabsTrigger value="report">AI Report Generator</TabsTrigger>
@@ -248,7 +264,7 @@ export default function ResourcesPage() {
 
           {/* Dynamic API Library Index Tab */}
           <TabsContent value="library" className="mt-4">
-            <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="rounded-xl border border-border bg-card overflow-x-auto shadow-xs">
               {isLoadingPapers ? (
                 <div className="flex items-center justify-center p-12 text-xs text-muted-foreground gap-2">
                   <Loader2 className="h-4 w-4 animate-spin text-primary" />
@@ -275,14 +291,14 @@ export default function ResourcesPage() {
                   <TableBody>
                     {papers.map((paper) => (
                       <TableRow key={paper.id}>
-                        <TableCell className="max-w-xs font-medium text-foreground">
+                        <TableCell className="max-w-xs font-medium text-foreground text-xs sm:text-sm">
                           {paper.title}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-xs">
                           {paper.authors?.slice(0, 2).join(", ")}
                           {paper.authors && paper.authors.length > 2 ? " et al." : ""}
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-xs">
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                           {paper.year || "N/A"} {paper.journal ? `· ${paper.journal}` : ""}
                         </TableCell>
                         <TableCell>
@@ -290,7 +306,7 @@ export default function ResourcesPage() {
                             {paper.source}
                           </Badge>
                         </TableCell>
-                        <TableCell className="font-mono text-xs text-muted-foreground">
+                        <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
                           {paper.doi || paper.pmid || paper.id}
                         </TableCell>
                         <TableCell className="text-right">
@@ -307,7 +323,7 @@ export default function ResourcesPage() {
                               ) : (
                                 <Plus className="h-3 w-3" />
                               )}
-                              Ingest API
+                              Ingest
                             </Button>
 
                             {paper.url && (
@@ -351,21 +367,21 @@ export default function ResourcesPage() {
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {papers.map((paper) => (
-                  <div key={paper.id} className="flex flex-col justify-between rounded-lg border border-border bg-card p-4 hover:border-border/80 transition-colors">
+                  <div key={paper.id} className="flex flex-col justify-between rounded-lg border border-border bg-card p-4 hover:border-border/80 transition-colors shadow-xs">
                     <div className="flex flex-col gap-1.5">
                       <div className="flex items-start justify-between gap-2">
-                        <h4 className="text-sm font-semibold leading-snug text-foreground">{paper.title}</h4>
+                        <h4 className="text-xs sm:text-sm font-semibold leading-snug text-foreground">{paper.title}</h4>
                         <Badge variant="secondary" className="shrink-0 text-[10px] uppercase font-mono">
                           {paper.source}
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground line-clamp-3">{paper.abstract || "No abstract provided in API payload."}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">{paper.abstract || "No abstract provided in API payload."}</p>
                     </div>
                     <div className="mt-3 flex items-center justify-between pt-2 border-t border-border/50 text-[11px] text-muted-foreground">
-                      <span>{paper.authors?.slice(0, 2).join(", ")} ({paper.year || "N/A"})</span>
+                      <span className="truncate max-w-[200px]">{paper.authors?.slice(0, 2).join(", ")} ({paper.year || "N/A"})</span>
                       {paper.url && (
-                        <a href={paper.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-primary hover:underline">
-                          View <ExternalLink className="h-3 w-3" />
+                        <a href={paper.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-primary hover:underline font-medium shrink-0">
+                          View Paper <ExternalLink className="h-3 w-3" />
                         </a>
                       )}
                     </div>
@@ -377,18 +393,18 @@ export default function ResourcesPage() {
 
           {/* Citations Formatter Tab */}
           <TabsContent value="citations" className="mt-4">
-            <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-6">
+            <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-xs">
               <div className="flex flex-col gap-1">
                 <h3 className="text-base font-semibold">API Citation Formatter</h3>
                 <p className="text-xs text-muted-foreground">
-                  Passes paper metadata array to backend endpoint `/api/v1/citations/format`.
+                  Format search results into standard academic citation styles.
                 </p>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <label className="text-xs font-semibold text-muted-foreground">Style:</label>
                 <Select value={citationStyle} onValueChange={(val: any) => setCitationStyle(val)}>
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger className="w-40 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -398,10 +414,21 @@ export default function ResourcesPage() {
                   </SelectContent>
                 </Select>
 
-                <Button onClick={handleFormatCitations} disabled={isFormatting || papers.length === 0}>
+                <Button onClick={handleFormatCitations} disabled={isFormatting || papers.length === 0} className="text-xs">
                   {isFormatting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Quote className="h-4 w-4 mr-1" />}
                   Format ({papers.length} Papers)
                 </Button>
+
+                {formattedCitations.length > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => copyToClipboard(formattedCitations.join("\n\n"), "citations")}
+                    className="text-xs gap-1 ml-auto"
+                  >
+                    {copiedCitations ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copiedCitations ? "Copied!" : "Copy All Citations"}
+                  </Button>
+                )}
               </div>
 
               {formattedCitations.length > 0 && (
@@ -423,7 +450,7 @@ export default function ResourcesPage() {
 
           {/* Report Generator Tab */}
           <TabsContent value="report" className="mt-4">
-            <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-6">
+            <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-xs">
               <div className="flex flex-col gap-1">
                 <h3 className="text-base font-semibold">Auto Research Report Generator API</h3>
                 <p className="text-xs text-muted-foreground">
@@ -431,13 +458,14 @@ export default function ResourcesPage() {
                 </p>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   placeholder="e.g. Cortisol Awakening Response and Metabolic Markers"
                   value={reportTopic}
                   onChange={(e) => setReportTopic(e.target.value)}
+                  className="text-xs sm:text-sm"
                 />
-                <Button onClick={handleGenerateReport} disabled={isGeneratingReport || !reportTopic.trim()} className="gap-2 shrink-0">
+                <Button onClick={handleGenerateReport} disabled={isGeneratingReport || !reportTopic.trim()} className="gap-2 shrink-0 text-xs sm:text-sm">
                   {isGeneratingReport ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                   Generate Report
                 </Button>
@@ -453,8 +481,22 @@ export default function ResourcesPage() {
               {generatedReport && (
                 <div className="mt-2 flex flex-col gap-4 rounded-lg border border-border bg-background p-5">
                   <div className="flex items-center justify-between border-b border-border pb-3">
-                    <h4 className="font-semibold text-foreground text-sm">Backend API Report Output</h4>
-                    <Badge variant="outline">{generatedReport.sources?.length || 0} Sources Cited</Badge>
+                    <h4 className="font-semibold text-foreground text-sm flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-primary" />
+                      Backend API Report Output
+                    </h4>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">{generatedReport.sources?.length || 0} Sources Cited</Badge>
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        onClick={() => copyToClipboard(generatedReport.markdown, "report")}
+                        className="gap-1 text-xs"
+                      >
+                        {copiedReport ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                        {copiedReport ? "Copied Markdown!" : "Copy Report"}
+                      </Button>
+                    </div>
                   </div>
                   <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-xs text-foreground leading-relaxed">
                     {generatedReport.markdown}
@@ -509,7 +551,7 @@ export default function ResourcesPage() {
                 </div>
                 <div>
                   <span className="font-semibold text-primary">Content Preview:</span>
-                  <div className="mt-1 rounded bg-muted p-3 text-muted-foreground whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto">
+                  <div className="mt-1 rounded bg-muted p-3 text-muted-foreground whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto font-mono text-[11px]">
                     {urlResult.preview}
                   </div>
                 </div>
